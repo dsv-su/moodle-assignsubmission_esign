@@ -58,6 +58,46 @@ class assign_submission_esign extends assign_submission_plugin {
         return true;
     }
 
+    public function view_summary(stdClass $submission, & $showviewlink) {
+        // Never show a link to view full submission.
+        $showviewlink = false;
+        // Let's try to display uploaded files.
+        return 'Status of e-signature is displayed here. We will just query the DB for it.';
+    }
+
+    /**
+     * Save the files and sign them with the token gotten from PEPS.
+     *
+     * @param stdClass $submission
+     * @param stdClass $data
+     * @return bool
+     */
+    public function save(stdClass $submission, stdClass $data) {
+
+        $plugins = $this->assignment->get_submission_plugins();
+        $fileplugin = '';
+
+        foreach ($plugins as $plugin) {
+            if ($plugin->is_enabled() && ($plugin->get_name() == 'File submissions')) {
+                $fileplugin = $plugin;
+            }
+        }
+
+        if ($fileplugin) {
+            $fs = get_file_storage();
+
+            $files = $fs->get_area_files($this->assignment->get_context()->id,
+                                         'assignsubmission_file',
+                                         ASSIGNSUBMISSION_FILE_FILEAREA,
+                                         $submission->id,
+                                         'timemodified',
+                                         false);
+            var_dump($files);
+        }
+
+        return false;
+    }
+
     /**
      * Returns false if the submission is signed.
      *

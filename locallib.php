@@ -52,17 +52,24 @@ class assign_submission_esign extends assign_submission_plugin {
      * @return bool
      */
     public function get_form_elements($submission, MoodleQuickForm $mform, stdClass $data) {
-
-        $mform->addElement('button', 'intro', 'Sign my submission with an e-signature');
-
+        if ($this->get_signedtoken($submission)) {
+            $mform->addElement('static', 'description', 'E-signature status', 'You have already signed your submission');
+        } else {
+            $mform->addElement('static', 'description', 'E-signature status', 'You can sign your submission by clicking the button below.');
+            $mform->addElement('button', 'intro', 'Sign my submission');
+        }
         return true;
     }
 
     public function view_summary(stdClass $submission, & $showviewlink) {
+        global $DB;
+
         // Never show a link to view full submission.
         $showviewlink = false;
-        // Let's try to display uploaded files.
-        return 'Status of e-signature is displayed here. We will just query the DB for it.';
+        // Let's try to display signed token info.
+        $output = 'The submission is signed by '.$signedtoken->signee.
+            ' on '.userdate($signedtoken->timesigned);
+        return $output;
     }
 
     /**
@@ -73,6 +80,7 @@ class assign_submission_esign extends assign_submission_plugin {
      * @return bool
      */
     public function save(stdClass $submission, stdClass $data) {
+        global $DB;
 
         $plugins = $this->assignment->get_submission_plugins();
         $fileplugin = '';
@@ -92,10 +100,37 @@ class assign_submission_esign extends assign_submission_plugin {
                                          $submission->id,
                                          'timemodified',
                                          false);
-            var_dump($files);
+            //var_dump($files);
         }
 
-        return false;
+        //Imagine that we already have the token.
+        $token = '456abc';
+
+        if ($token) {
+            //Check if it is already signed.
+            $signedtoken = $this->get_signedtoken($submission);
+            if (!$signedtoken) {
+                $esign = new stdClass();
+                $esign->checksum = '123abc';
+                $esign->signedtoken = 'abcdef';
+                $esign->contextid = $this->assignment->get_context()->id;
+                $esign->component = 'assignsubmission_file';
+                $esign->area = 'submission_files';
+                $esign->itemid = $submission->id;
+                $esign->userid = $submission->userid;
+                $esign->signee = 'Adam Andersson';
+                $esign->timesigned = time();
+
+                $DB->insert_record('esign', $esign);
+            } else {
+                // Just update some info. But what info...? only time?
+                // TO DO.
+                // maybe the files changed.
+                $esign->checksum = 'checksum';
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -105,7 +140,26 @@ class assign_submission_esign extends assign_submission_plugin {
      * @return bool
      */
     public function is_empty(stdClass $submission) {
-        return false;
+        return $this->get_signedtoken($submission) == false;
+    }
+
+    /**
+     * Returns signedtoken if the submission is signed.
+     *
+     * @param stdClass $submission
+     * @return bool
+     */
+    public function get_signedtoken(stdClass $submission) {
+        global $DB;
+
+        $signedtoken = $DB->get_record('esign', array(
+            'contextid' => $this->assignment->get_context()->id,
+            'userid' => $submission->userid));
+        if ($signedtoken) {
+            return $signedtoken;
+        } else {
+            return false;
+        }
     }
 
 }

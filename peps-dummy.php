@@ -15,15 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains the version information for the e-signature submission plugin
+ * This file contains simulation of token generation for e-sign plugin.
  *
  * @package    assignsubmission_esign
  * @copyright  2015 Pavel Sokolov <pavel.m.sokolov@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+require('../../../../config.php');
 
-$plugin->version   = 2015101601;
-$plugin->requires  = 2015050500;
-$plugin->component = 'assignsubmission_esign';
+$_SESSION['esign_token'] = 'returned_token';
+
+redirect($_SERVER['HTTP_REFERER']);
+

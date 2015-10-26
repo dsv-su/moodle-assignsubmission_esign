@@ -23,6 +23,7 @@
  */
 
 namespace assignsubmission_esign\event;
+
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -33,7 +34,7 @@ defined('MOODLE_INTERNAL') || die();
  * @copyright  2015 Pavel Sokolov <pavel.m.sokolov@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class submission_signed extends \core\event\submission_signed {
+class submission_signed extends \mod_assign\event\submission_created {
     /**
      * Get URL related to the action.
      *
@@ -44,12 +45,21 @@ class submission_signed extends \core\event\submission_signed {
     }
 
     /**
+     * Returns localised general event name.
+     *
+     * @return string
+     */
+    public static function get_name() {
+        return get_string('eventsubmissionsigned', 'assignsubmission_esign');
+    }
+
+    /**
      * Returns description of what happened.
      *
      * @return string
      */
     public function get_description() {
         return "The user with id '$this->userid' signed the submission " .
-            "with id '{$this->other['itemid']}' for the assignment with course module id '$this->contextinstanceid'.";
+            "with id '{$this->other['submissionid']}' for the assignment with course module id '$this->contextinstanceid'.";
     }
 }

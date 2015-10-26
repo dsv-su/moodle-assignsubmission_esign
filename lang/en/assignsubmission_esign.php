@@ -26,4 +26,5 @@ $string['default'] = 'Enabled by default';
 $string['default_help'] = 'If set, this submission method will be enabled by default for all new assignments.';
 $string['enabled'] = 'Submission e-signature';
 $string['enabled_help'] = 'If enabled, students can sign their own submission with e-signature.';
+$string['eventsubmissionsigned'] = 'Submission e-signed';
 $string['pluginname'] = 'Submission e-signature';

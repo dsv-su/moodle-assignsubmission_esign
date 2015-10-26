@@ -118,6 +118,17 @@ class assign_submission_esign extends assign_submission_plugin {
 
                 $DB->update_record('esign', $signedtoken);
             }
+
+            $params = array(
+                'context' => $this->assignment->get_context(),
+                'courseid' => $this->assignment->get_course()->id
+            );
+            $params['other']['submissionid'] = $submission->id;
+            $params['other']['submissionattempt'] = $submission->attemptnumber;
+            $params['other']['submissionstatus'] = $submission->status;
+            $event = \assignsubmission_esign\event\submission_signed::create($params);
+            $event->set_assign($this->assignment);
+            $event->trigger();
         }
 
         return true;

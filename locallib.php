@@ -53,15 +53,15 @@ class assign_submission_esign extends assign_submission_plugin {
      */
     public function get_form_elements($submission, MoodleQuickForm $mform, stdClass $data) {
         // We probably should check if the submission was modified later than the token if signed?
-        /* Force re-signing the submission
-        if ($this->get_signedtoken($submission) || isset($_SESSION['esign_token'])) {
-            $mform->addElement('static', 'description', 'E-signature status', 'You have already signed your submission');
+        // Force re-signing the submission
+        if (isset($_SESSION['esign_token'])) {
+            $mform->addElement('static', 'description', 'E-signature status', 'You have signed your submission.');
         } else {
-        */    $mform->addElement('static', 'description', 'E-signature status',
+            $mform->addElement('static', 'description', 'E-signature status',
                 'You can sign your submission by clicking the button below.'.
                 html_writer::empty_tag('p', array('id' => 'signmysubmission_link')).
                 html_writer::link('submission/esign/peps-dummy.php', 'Sign my submission'));
-        //}
+        }
         return true;
     }
 
@@ -75,6 +75,17 @@ class assign_submission_esign extends assign_submission_plugin {
         $output = 'The submission is signed by '.$signedtoken->signee.
             ' on '.userdate($signedtoken->timesigned);
         return $output;
+    }
+
+    /**
+     * Check if the submission plugin has all the required data to allow the work
+     * to be submitted for grading
+     * @param stdClass $submission the assign_submission record being submitted.
+     * @return bool|string 'true' if OK to proceed with submission, otherwise a
+     *                        a message to display to the user
+     */
+    public function precheck_submission($submission) {
+        return true;
     }
 
     /**
@@ -134,6 +145,11 @@ class assign_submission_esign extends assign_submission_plugin {
             /* Clear the value so it has to be retrieveg again
             if the submission is edited in the same session. */
             $_SESSION['esign_token'] = NULL;
+        } else {
+            if ($signedtoken) {
+                // What if a student comes to edit a submission, 
+                // but forget to obtain a new token?
+            }
         }
 
         return true;

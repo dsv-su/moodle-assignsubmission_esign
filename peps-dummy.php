@@ -24,7 +24,9 @@
 
 require('../../../../config.php');
 
+// Insert PEPS communication code here.
+
 $_SESSION['esign_token'] = 'returned_token';
 
-redirect($_SERVER['HTTP_REFERER']);
+redirect($_SESSION['esign_returnpath']);
 

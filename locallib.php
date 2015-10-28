@@ -52,8 +52,14 @@ class assign_submission_esign extends assign_submission_plugin {
      * @return bool
      */
     public function get_form_elements($submission, MoodleQuickForm $mform, stdClass $data) {
+        global $PAGE;
         // We probably should check if the submission was modified later than the token if signed?
         // Force re-signing the submission
+        if (strpos('?', $_SERVER['REQUEST_URI']) === FALSE) {
+            $_SESSION['esign_returnpath'] = $_SERVER['REQUEST_URI'].'?id='.$PAGE->cm->id.'&action=editsubmission';
+        } else {
+            $_SESSION['esign_returnpath'] = $_SERVER['REQUEST_URI'];
+        }
         if (isset($_SESSION['esign_token'])) {
             $mform->addElement('static', 'description', 'E-signature status', 'You have signed your submission.');
         } else {
@@ -75,17 +81,6 @@ class assign_submission_esign extends assign_submission_plugin {
         $output = 'The submission is signed by '.$signedtoken->signee.
             ' on '.userdate($signedtoken->timesigned);
         return $output;
-    }
-
-    /**
-     * Check if the submission plugin has all the required data to allow the work
-     * to be submitted for grading
-     * @param stdClass $submission the assign_submission record being submitted.
-     * @return bool|string 'true' if OK to proceed with submission, otherwise a
-     *                        a message to display to the user
-     */
-    public function precheck_submission($submission) {
-        return true;
     }
 
     /**
@@ -146,9 +141,9 @@ class assign_submission_esign extends assign_submission_plugin {
             if the submission is edited in the same session. */
             $_SESSION['esign_token'] = NULL;
         } else {
-            if ($signedtoken) {
-                // What if a student comes to edit a submission, 
-                // but forget to obtain a new token?
+            if (!$token) {
+                $this->set_error('You have to sign your submission before saving it.');
+                return false;
             }
         }
 
@@ -162,6 +157,7 @@ class assign_submission_esign extends assign_submission_plugin {
      * @return bool
      */
     public function is_empty(stdClass $submission) {
+        $_SESSION['esign_token'] = NULL;
         return $this->get_signedtoken($submission) == false;
     }
 

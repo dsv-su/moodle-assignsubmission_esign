@@ -53,14 +53,15 @@ class assign_submission_esign extends assign_submission_plugin {
      */
     public function get_form_elements($submission, MoodleQuickForm $mform, stdClass $data) {
         // We probably should check if the submission was modified later than the token if signed?
+        /* Force re-signing the submission
         if ($this->get_signedtoken($submission) || isset($_SESSION['esign_token'])) {
             $mform->addElement('static', 'description', 'E-signature status', 'You have already signed your submission');
         } else {
-            $mform->addElement('static', 'description', 'E-signature status',
+        */    $mform->addElement('static', 'description', 'E-signature status',
                 'You can sign your submission by clicking the button below.'.
                 html_writer::empty_tag('p', array('id' => 'signmysubmission_link')).
                 html_writer::link('submission/esign/peps-dummy.php', 'Sign my submission'));
-        }
+        //}
         return true;
     }
 
@@ -88,10 +89,10 @@ class assign_submission_esign extends assign_submission_plugin {
 
         $files = $this->get_submitted_files($submission);
 
-        $token = '';
-
         //Imagine that we already have the token.
         $token = $_SESSION['esign_token'] ?: NULL;
+
+        // ADD SOME CHECK TO SEE IF SESSION IS NOT KILLED, break instead!!!
 
         //Check if it is already signed.
         $signedtoken = $this->get_signedtoken($submission);
@@ -129,6 +130,10 @@ class assign_submission_esign extends assign_submission_plugin {
             $event = \assignsubmission_esign\event\submission_signed::create($params);
             $event->set_assign($this->assignment);
             $event->trigger();
+
+            /* Clear the value so it has to be retrieveg again
+            if the submission is edited in the same session. */
+            $_SESSION['esign_token'] = NULL;
         }
 
         return true;

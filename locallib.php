@@ -66,7 +66,7 @@ class assign_submission_esign extends assign_submission_plugin {
             $mform->addElement('static', 'description', 'E-signature status',
                 'You can sign your submission by clicking the button below.'.
                 html_writer::empty_tag('p', array('id' => 'signmysubmission_link')).
-                html_writer::link('submission/esign/peps-dummy.php', 'Sign my submission'));
+                html_writer::link('submission/esign/peps-sign-request.php', 'Sign my submission'));
         }
         return true;
     }

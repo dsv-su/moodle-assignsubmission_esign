@@ -24,9 +24,17 @@
 
 require('../../../../config.php');
 
-// Insert PEPS communication code here.
+/* PEPS communication */
+require_once('../../../../stork2/storkRequest.php');
 
-$_SESSION['esign_token'] = 'returned_token';
+$_GET["country"] = 'SE'; // TODO: Add a countryselector to the esign form
 
-redirect($_SESSION['esign_returnpath']);
+$postDetails = array(
+    "spcountry" => "SE",
+    "country" => $_GET["country"],
+    "qaaLevel" => "3",
+    "assertionUrl" => "http://dev1.egovlab.eu:4005/mod/assign/submission/esign/peps-sign-response.php",
+    "eIdentifierType" => "true",
+);
+sendStorkRequest($postDetails);
 

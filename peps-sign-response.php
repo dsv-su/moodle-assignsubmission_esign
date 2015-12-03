@@ -2,9 +2,13 @@
 
 require('../../../../config.php');
 
-// Insert reading of PEPS SAML response data here
+require_once('../../../../stork2/storkSignResponse.php');
 
-// Define the returned token and redirect back to original submission form page
-$_SESSION['esign_token'] = 'returned_token';
-redirect($_SESSION['esign_returnpath']);
+// Read stork saml response
+$stork_attributes = parseStorkResponse();
+if ($stork_attributes) {
+	$stork_token = $stork_attributes['eIdentifier'];
+	$_SESSION['esign_token'] = $stork_token;
+	echo "stork_token: " . $stork_token . "<br>";
+}
 

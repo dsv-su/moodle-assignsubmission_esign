@@ -55,19 +55,17 @@ class assign_submission_esign extends assign_submission_plugin {
         global $PAGE;
         // We probably should check if the submission was modified later than the token if signed?
         // Force re-signing the submission
-        if (strpos('?', $_SERVER['REQUEST_URI']) === FALSE) {
-            $_SESSION['esign_returnpath'] = $_SERVER['REQUEST_URI'].'?id='.$PAGE->cm->id.'&action=editsubmission';
-        } else {
-            $_SESSION['esign_returnpath'] = $_SERVER['REQUEST_URI'];
-        }
-        if (isset($_SESSION['esign_token'])) {
-            $mform->addElement('static', 'description', 'E-signature status', 'You have signed your submission.');
-        } else {
-            $mform->addElement('static', 'description', 'E-signature status',
-                'You can sign your submission by clicking the button below.'.
-                html_writer::empty_tag('p', array('id' => 'signmysubmission_link')).
-                html_writer::link('submission/esign/peps-sign-request.php', 'Sign my submission'));
-        }
+
+        $choices = get_string_manager()->get_list_of_countries();
+        $choices = array('' => get_string('selectacountry') . '...') + $choices;
+        $mform->addElement('select', 'country', 'Country for E-signature', $choices);
+        $mform->addElement('static', 'description', '',
+            'By saving changes you will be redirected to your PEPS provider in order to complete e-signing of your submission.');
+            //html_writer::empty_tag('p', array('id' => 'signmysubmission_link')));
+            //html_writer::link('submission/esign/peps-sign-request.php', 'Sign my submission', array('target' => '_blank')));
+        $mform->setDefault('country', 'SE');
+        $mform->addRule('country', 'Please choose your country', 'required', '', 'client', false, false);
+
         return true;
     }
 
@@ -95,36 +93,28 @@ class assign_submission_esign extends assign_submission_plugin {
 
         $files = $this->get_submitted_files($submission);
 
-        //Imagine that we already have the token.
-        $token = $_SESSION['esign_token'] ?: NULL;
-
-        // ADD SOME CHECK TO SEE IF SESSION IS NOT KILLED, break instead!!!
-
         //Check if it is already signed.
         $signedtoken = $this->get_signedtoken($submission);
+        $user = $DB->get_record('user', array('id' => $submission->userid));
 
-        if ($token && count($files)) {
+        if (count($files)) {
             if (!$signedtoken) {
+                // Creating a dummy value.
                 $esign = new stdClass();
-                $esign->checksum = '123abc';
-                $esign->signedtoken = $token;
+                $esign->checksum = 'dummychecksum';
+                $esign->signedtoken = 'empty_token';
                 $esign->contextid = $this->assignment->get_context()->id;
                 $esign->component = 'assignsubmission_file';
                 $esign->area = 'submission_files';
                 $esign->itemid = $submission->id;
                 $esign->userid = $submission->userid;
-                $esign->signee = 'Adam Andersson';
+                $esign->signee = fullname($user);
                 $esign->timesigned = time();
 
                 $DB->insert_record('esign', $esign);
-            } else {
-                $signedtoken->checksum = 'checksum';
-                $signedtoken->signedtoken = 'signedtoken';
-                $signedtoken->signee = 'Adam Andersson';
-                $signedtoken->timesigned = time();
-
-                $DB->update_record('esign', $signedtoken);
             }
+
+            $_SESSION['submission'] = serialize($submission);
 
             $params = array(
                 'context' => $this->assignment->get_context(),
@@ -133,18 +123,15 @@ class assign_submission_esign extends assign_submission_plugin {
             $params['other']['submissionid'] = $submission->id;
             $params['other']['submissionattempt'] = $submission->attemptnumber;
             $params['other']['submissionstatus'] = $submission->status;
-            $event = \assignsubmission_esign\event\submission_signed::create($params);
-            $event->set_assign($this->assignment);
-            $event->trigger();
 
-            /* Clear the value so it has to be retrieveg again
-            if the submission is edited in the same session. */
-            $_SESSION['esign_token'] = NULL;
+            $_SESSION['event_params'] = serialize($params);
+            $_SESSION['cmid'] = $this->assignment->get_course_module()->id;
+
+            redirect('submission/esign/peps-sign-request.php?country='.$data->country);
+
         } else {
-            if (!$token) {
-                $this->set_error('You have to sign your submission before saving it.');
-                return false;
-            }
+            $this->set_error('You have to upload files for your submission.');
+            return false;
         }
 
         return true;

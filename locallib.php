@@ -76,9 +76,12 @@ class assign_submission_esign extends assign_submission_plugin {
         $showviewlink = false;
         // Let's try to display signed token info.
         $signedtoken = $this->get_signedtoken($submission);
-        $output = 'The submission is signed by '.$signedtoken->signee.
+        if ($signedtoken) {
+            $output = 'The submission is signed by '.$signedtoken->signee.
             ' on '.userdate($signedtoken->timesigned);
-        return $output;
+            return $output;
+        }
+        return $false;
     }
 
     /**
@@ -98,7 +101,12 @@ class assign_submission_esign extends assign_submission_plugin {
         $user = $DB->get_record('user', array('id' => $submission->userid));
 
         if (count($files)) {
-            if (!$signedtoken) {
+            if ((!$signedtoken) || (count($files)>count($signedtoken))) {
+                foreach ($files as $i => $file) {
+                    if ($DB->record_exists('esign', array('checksum' => $file->get_contenthash()))) {
+                        unset($files[$i]);
+                    }
+                }
                 foreach ($files as $file) {
                     // Creating a dummy value.
                     $esign = new stdClass();
@@ -159,7 +167,7 @@ class assign_submission_esign extends assign_submission_plugin {
     public function get_signedtoken(stdClass $submission) {
         global $DB;
 
-        $signedtoken = $DB->get_record('esign', array(
+        $signedtoken = $DB->get_records('esign', array(
             'contextid' => $this->assignment->get_context()->id,
             'userid' => $submission->userid));
         if ($signedtoken) {

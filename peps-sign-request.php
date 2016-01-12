@@ -27,14 +27,22 @@ require('../../../../config.php');
 /* PEPS communication */
 require_once('../../../../stork2/storkRequest.php');
 
-//$_GET["country"] = 'SE'; // TODO: Add a countryselector to the esign form
+$s = '';
+if(isset($_SERVER['HTTPS'])) {
+    if ($_SERVER['HTTPS'] == "on") {
+        $s = 's';
+    }
+}
+
+$url = "http$s://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 
 $postDetails = array(
     "spcountry" => "SE",
     "country" => $_GET["country"],
     "qaaLevel" => "3",
     //"assertionUrl" => "http://dev1.egovlab.eu:4005/mod/assign/submission/esign/peps-sign-response.php",
-    "assertionUrl" => "http://localhost/moodletest/mod/assign/submission/esign/peps-sign-response.php",
+    //"assertionUrl" => "http://localhost/moodletest/mod/assign/submission/esign/peps-sign-response.php",
+    "assertionUrl" => str_replace(strrchr($url, '/'), '', $url)."/peps-sign-response.php",
     "eIdentifierType" => "true",
 );
 

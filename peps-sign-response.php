@@ -15,11 +15,16 @@ if ($stork_attributes) {
 	$event_params = unserialize($_SESSION['event_params']);
 	$cmid = $_SESSION['cmid'];
 
-	$esign = $DB->get_record('esign', array('contextid' => context_module::instance($cmid)->id, 'userid' => $submission->userid));
-	$esign->signedtoken = $stork_token; //Some manipulation is needed?
-	$esign->timesigned = time();
+	$esign = $DB->get_records('esign', array(
+		'contextid' => context_module::instance($cmid)->id,
+		'userid' => $submission->userid)
+	);
+	foreach ($esign as $e) {
+		$e->signedtoken = $stork_token; //Some manipulation is needed?
+		$e->timesigned = time();
 
-	$DB->update_record('esign', $esign);
+		$DB->update_record('esign', $e);
+	}
 
 	$event = \assignsubmission_esign\event\submission_signed::create($event_params);
 	$event->trigger();

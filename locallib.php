@@ -99,19 +99,21 @@ class assign_submission_esign extends assign_submission_plugin {
 
         if (count($files)) {
             if (!$signedtoken) {
-                // Creating a dummy value.
-                $esign = new stdClass();
-                $esign->checksum = 'dummychecksum';
-                $esign->signedtoken = 'empty_token';
-                $esign->contextid = $this->assignment->get_context()->id;
-                $esign->component = 'assignsubmission_file';
-                $esign->area = 'submission_files';
-                $esign->itemid = $submission->id;
-                $esign->userid = $submission->userid;
-                $esign->signee = fullname($user);
-                $esign->timesigned = time();
+                foreach ($files as $file) {
+                    // Creating a dummy value.
+                    $esign = new stdClass();
+                    $esign->checksum = $file->get_contenthash();
+                    $esign->signedtoken = 'empty_token';
+                    $esign->contextid = $this->assignment->get_context()->id;
+                    $esign->component = 'assignsubmission_file';
+                    $esign->area = 'submission_files';
+                    $esign->itemid = $submission->id;
+                    $esign->userid = $submission->userid;
+                    $esign->signee = fullname($user);
+                    $esign->timesigned = time();
 
-                $DB->insert_record('esign', $esign);
+                    $DB->insert_record('esign', $esign);
+                }
             }
 
             $_SESSION['submission'] = serialize($submission);

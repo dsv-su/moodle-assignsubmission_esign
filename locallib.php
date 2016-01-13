@@ -76,12 +76,13 @@ class assign_submission_esign extends assign_submission_plugin {
         $showviewlink = false;
         // Let's try to display signed token info.
         $signedtoken = $this->get_signedtoken($submission);
+        $signedtoken = array_pop($signedtoken);
         if ($signedtoken) {
             $output = 'The submission is signed by '.$signedtoken->signee.
             ' on '.userdate($signedtoken->timesigned);
             return $output;
         }
-        return $false;
+        return false;
     }
 
     /**
@@ -96,18 +97,50 @@ class assign_submission_esign extends assign_submission_plugin {
 
         $files = $this->get_submitted_files($submission);
 
-        //Check if it is already signed.
-        $signedtoken = $this->get_signedtoken($submission);
         $user = $DB->get_record('user', array('id' => $submission->userid));
 
-        if (count($files)) {
-            if ((!$signedtoken) || (count($files)>count($signedtoken))) {
-                foreach ($files as $i => $file) {
-                    if ($DB->record_exists('esign', array('checksum' => $file->get_contenthash()))) {
-                        unset($files[$i]);
-                    }
+        if ($files && count($files)) {
+
+            // Check which files to sign, and which signatures to delete.
+            $filestosign = array();
+            $esignstodelete = array();
+            $esignstosave = array();
+
+            $esigns = $DB->get_records('esign', array(
+                'contextid' => $this->assignment->get_context()->id,
+                'userid' => $submission->userid
+                ));
+
+            foreach ($files as $file) {
+                if (!$esign = $DB->get_record('esign', array(
+                    'checksum' => $file->get_contenthash(),
+                    'userid' => $submission->userid,
+                    'contextid' => $this->assignment->get_context()->id
+                    ))) {
+                    $filestosign[] = $file;
+                } else {
+                    $esignstosave[] = $esign;
                 }
-                foreach ($files as $file) {
+            }
+
+            $esignstodelete = array_udiff($esigns, $esignstosave,
+                function ($obj_a, $obj_b) {
+                    return $obj_a->id - $obj_b->id;
+                }
+            );
+
+            if ($esignstodelete) {
+                foreach ($esignstodelete as $esign) {
+                    $DB->delete_records('esign', array(
+                    'checksum' => $esign->checksum,
+                    'userid' => $esign->userid,
+                    'contextid' => $esign->contextid
+                    ));
+                }
+            }
+
+            if ($filestosign) {
+                foreach ($filestosign as $file) {
                     // Creating a dummy value.
                     $esign = new stdClass();
                     $esign->checksum = $file->get_contenthash();

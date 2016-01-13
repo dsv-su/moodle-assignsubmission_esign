@@ -17,8 +17,8 @@ if ($stork_attributes) {
 
 	$esign = $DB->get_records('esign', array(
 		'contextid' => context_module::instance($cmid)->id,
-		'userid' => $submission->userid)
-	);
+		'userid' => $submission->userid
+		));
 	foreach ($esign as $e) {
 		$e->signedtoken = $stork_token; //Some manipulation is needed?
 		$e->timesigned = time();

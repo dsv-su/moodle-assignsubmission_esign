@@ -52,20 +52,15 @@ class assign_submission_esign extends assign_submission_plugin {
      * @return bool
      */
     public function get_form_elements($submission, MoodleQuickForm $mform, stdClass $data) {
-        global $PAGE;
-        // We probably should check if the submission was modified later than the token if signed?
-        // Force re-signing the submission
-
-        $choices = get_string_manager()->get_list_of_countries();
-        $choices = array('' => get_string('selectacountry') . '...') + $choices;
-        $mform->addElement('select', 'country', 'Country for E-signature', $choices);
-        $mform->addElement('static', 'description', '',
-            'By saving changes you will be redirected to your PEPS provider in order to complete e-signing of your submission.');
-            //html_writer::empty_tag('p', array('id' => 'signmysubmission_link')));
-            //html_writer::link('submission/esign/peps-sign-request.php', 'Sign my submission', array('target' => '_blank')));
-        $mform->setDefault('country', 'SE');
-        $mform->addRule('country', 'Please choose your country', 'required', '', 'client', false, false);
-
+        if ($this->file_submission_enabled()) {
+            $choices = get_string_manager()->get_list_of_countries();
+            $choices = array('' => get_string('selectacountry') . '...') + $choices;
+            $mform->addElement('select', 'country', 'Country for E-signature', $choices);
+            $mform->addElement('static', 'description', '',
+                'By saving changes you will be redirected to your PEPS provider in order to complete e-signing of your submission.');
+            $mform->setDefault('country', 'SE');
+            $mform->addRule('country', 'Please choose your country', 'required', '', 'client', false, false);
+        }
         return true;
     }
 
@@ -99,7 +94,12 @@ class assign_submission_esign extends assign_submission_plugin {
 
         $user = $DB->get_record('user', array('id' => $submission->userid));
 
-        if ($files && count($files)) {
+        if (empty($files)) {
+            $files = array();
+            $file = new stdClass();
+        }
+
+        if ($this->file_submission_enabled() && count($files)) {
 
             // Check which files to sign, and which signatures to delete.
             $filestosign = array();
@@ -172,6 +172,8 @@ class assign_submission_esign extends assign_submission_plugin {
 
             redirect('submission/esign/peps-sign-request.php?country='.$data->country);
 
+        } else if (!$this->file_submission_enabled()) {
+            return true;
         } else {
             $this->set_error('You have to upload files for your submission.');
             return false;
@@ -211,22 +213,31 @@ class assign_submission_esign extends assign_submission_plugin {
     }
 
     /**
+     * Checks whether file submission plugin is enabled for this assignment.
+     *
+     * @return bool
+     */
+    public function file_submission_enabled() {
+        $plugins = $this->assignment->get_submission_plugins();
+        $fileplugin = '';
+
+        foreach ($plugins as $plugin) {
+            if ($plugin->is_enabled() && ($plugin->get_name() == 'File submissions')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Returns files that are associated with the submission.
      *
      * @param stdClass $submission
      * @return bool
      */
     public function get_submitted_files(stdClass $submission) {
-        $plugins = $this->assignment->get_submission_plugins();
-        $fileplugin = '';
-
-        foreach ($plugins as $plugin) {
-            if ($plugin->is_enabled() && ($plugin->get_name() == 'File submissions')) {
-                $fileplugin = $plugin;
-            }
-        }
-
-        if ($fileplugin) {
+        if ($this->file_submission_enabled()) {
             $fs = get_file_storage();
 
             $files = $fs->get_area_files($this->assignment->get_context()->id,
@@ -238,6 +249,6 @@ class assign_submission_esign extends assign_submission_plugin {
             return $files;
         }
 
-        return false;
+        return 0;
     }
 }

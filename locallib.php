@@ -147,7 +147,7 @@ class assign_submission_esign extends assign_submission_plugin {
                     $esign->signedtoken = 'empty_token';
                     $esign->contextid = $this->assignment->get_context()->id;
                     $esign->area = 'submission_files';
-                    $esign->itemid = $submission->id;
+                    $esign->submission = $submission->id;
                     $esign->userid = $submission->userid;
                     $esign->signee = fullname($user);
                     $esign->timesigned = time();

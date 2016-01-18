@@ -106,13 +106,13 @@ class assign_submission_esign extends assign_submission_plugin {
             $esignstodelete = array();
             $esignstosave = array();
 
-            $esigns = $DB->get_records('esign', array(
+            $esigns = $DB->get_records('assignsubmission_esign', array(
                 'contextid' => $this->assignment->get_context()->id,
                 'userid' => $submission->userid
                 ));
 
             foreach ($files as $file) {
-                if (!$esign = $DB->get_record('esign', array(
+                if (!$esign = $DB->get_record('assignsubmission_esign', array(
                     'checksum' => $file->get_contenthash(),
                     'userid' => $submission->userid,
                     'contextid' => $this->assignment->get_context()->id
@@ -131,7 +131,7 @@ class assign_submission_esign extends assign_submission_plugin {
 
             if ($esignstodelete) {
                 foreach ($esignstodelete as $esign) {
-                    $DB->delete_records('esign', array(
+                    $DB->delete_records('assignsubmission_esign', array(
                     'checksum' => $esign->checksum,
                     'userid' => $esign->userid,
                     'contextid' => $esign->contextid
@@ -146,14 +146,13 @@ class assign_submission_esign extends assign_submission_plugin {
                     $esign->checksum = $file->get_contenthash();
                     $esign->signedtoken = 'empty_token';
                     $esign->contextid = $this->assignment->get_context()->id;
-                    $esign->component = 'assignsubmission_file';
                     $esign->area = 'submission_files';
                     $esign->itemid = $submission->id;
                     $esign->userid = $submission->userid;
                     $esign->signee = fullname($user);
                     $esign->timesigned = time();
 
-                    $DB->insert_record('esign', $esign);
+                    $DB->insert_record('assignsubmission_esign', $esign);
                 }
             }
 
@@ -202,7 +201,7 @@ class assign_submission_esign extends assign_submission_plugin {
     public function get_signedtoken(stdClass $submission) {
         global $DB;
 
-        $signedtoken = $DB->get_records('esign', array(
+        $signedtoken = $DB->get_records('assignsubmission_esign', array(
             'contextid' => $this->assignment->get_context()->id,
             'userid' => $submission->userid));
         if ($signedtoken) {

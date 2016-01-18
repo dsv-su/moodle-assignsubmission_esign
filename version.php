@@ -25,5 +25,5 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->version   = 2015101601;
-$plugin->requires  = 2015050500;
+$plugin->requires  = 2012061700;
 $plugin->component = 'assignsubmission_esign';

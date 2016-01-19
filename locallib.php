@@ -70,11 +70,11 @@ class assign_submission_esign extends assign_submission_plugin {
         // Never show a link to view full submission.
         $showviewlink = false;
         // Let's try to display signed token info.
-        $signedtoken = $this->get_signedtoken($submission);
-        $signedtoken = array_pop($signedtoken);
-        if ($signedtoken) {
-            $output = 'The submission is signed by '.$signedtoken->signee.
-            ' on '.userdate($signedtoken->timesigned);
+        $esign = $this->get_signature($submission);
+        $esign = array_pop($esign);
+        if ($esign) {
+            $output = 'The submission is signed by '.$esign->signee.
+            ' on '.userdate($esign->timesigned);
             return $output;
         }
         return false;
@@ -106,16 +106,12 @@ class assign_submission_esign extends assign_submission_plugin {
             $esignstodelete = array();
             $esignstosave = array();
 
-            $esigns = $DB->get_records('assignsubmission_esign', array(
-                'contextid' => $this->assignment->get_context()->id,
-                'userid' => $submission->userid
-                ));
+            $esigns = $this->get_signature($submission);
 
             foreach ($files as $file) {
                 if (!$esign = $DB->get_record('assignsubmission_esign', array(
                     'checksum' => $file->get_contenthash(),
-                    'userid' => $submission->userid,
-                    'contextid' => $this->assignment->get_context()->id
+                    'submission' => $submission->id
                     ))) {
                     $filestosign[] = $file;
                 } else {
@@ -133,8 +129,7 @@ class assign_submission_esign extends assign_submission_plugin {
                 foreach ($esignstodelete as $esign) {
                     $DB->delete_records('assignsubmission_esign', array(
                     'checksum' => $esign->checksum,
-                    'userid' => $esign->userid,
-                    'contextid' => $esign->contextid
+                    'submission' => $submission->id
                     ));
                 }
             }
@@ -189,23 +184,21 @@ class assign_submission_esign extends assign_submission_plugin {
      */
     public function is_empty(stdClass $submission) {
         $_SESSION['esign_token'] = NULL;
-        return $this->get_signedtoken($submission) == false;
+        return $this->get_signature($submission) == false;
     }
 
     /**
-     * Returns signedtoken if the submission is signed.
+     * Returns esign if the submission is signed.
      *
      * @param stdClass $submission
      * @return bool
      */
-    public function get_signedtoken(stdClass $submission) {
+    public function get_signature(stdClass $submission) {
         global $DB;
 
-        $signedtoken = $DB->get_records('assignsubmission_esign', array(
-            'contextid' => $this->assignment->get_context()->id,
-            'userid' => $submission->userid));
-        if ($signedtoken) {
-            return $signedtoken;
+        $esign = $DB->get_records('assignsubmission_esign', array('submission' => $submission->id));
+        if ($esign) {
+            return $esign;
         } else {
             return false;
         }
@@ -249,5 +242,18 @@ class assign_submission_esign extends assign_submission_plugin {
         }
 
         return 0;
+    }
+
+    /**
+     * The assignment has been deleted - cleanup
+     *
+     * @return bool
+     */
+    public function delete_instance() {
+        global $DB;
+        $DB->delete_records('assignsubmission_esign', array(
+            'contextid' => $this->assignment->get_context()->id
+        ));
+        return true;
     }
 }

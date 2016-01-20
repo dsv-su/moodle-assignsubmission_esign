@@ -24,6 +24,16 @@ if ($stork_attributes) {
 		$DB->update_record('assignsubmission_esign', $e);
 	}
 
+	$context = context_module::instance($cmid);
+	$cm = get_coursemodule_from_id('assign', $cmid, 0, false, MUST_EXIST);
+	$course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
+
+	$PAGE->set_context($context);
+	$PAGE->set_course($course);
+	$PAGE->set_cm($cm);
+	$PAGE->set_title(get_string('pluginname', 'assignsubmission_esign'));
+	$PAGE->set_pagelayout('standard');
+
 	$event = \assignsubmission_esign\event\submission_signed::create($event_params);
 	$event->trigger();
 

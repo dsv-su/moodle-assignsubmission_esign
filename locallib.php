@@ -56,10 +56,9 @@ class assign_submission_esign extends assign_submission_plugin {
             $choices = get_string_manager()->get_list_of_countries();
             $choices = array('' => get_string('selectacountry') . '...') + $choices;
             $mform->addElement('select', 'country', 'Country for E-signature', $choices);
-            $mform->addElement('static', 'description', '',
-                'By saving changes you will be redirected to your PEPS provider in order to complete e-signing of your submission.');
+            $mform->addElement('static', 'description', '', get_string('savechanges', 'assignsubmission_esign'));
             $mform->setDefault('country', 'SE');
-            $mform->addRule('country', 'Please choose your country', 'required', '', 'client', false, false);
+            $mform->addRule('country', get_string('selectacountry'), 'required', '', 'client', false, false);
         }
         return true;
     }
@@ -71,11 +70,13 @@ class assign_submission_esign extends assign_submission_plugin {
         $showviewlink = false;
         // Let's try to display signed token info.
         $esign = $this->get_signature($submission);
-        $esign = array_pop($esign);
         if ($esign) {
-            $output = 'The submission is signed by '.$esign->signee.
-            ' on '.userdate($esign->timesigned);
-            return $output;
+            $esign = array_pop($esign);
+            if ($esign->signedtoken <> 'empty_token') {
+                $esign->timesigned = userdate($esign->timesigned);
+                $output = get_string('signedby', 'assignsubmission_esign', $esign);
+                return $output;
+            }
         }
         return false;
     }
@@ -108,30 +109,34 @@ class assign_submission_esign extends assign_submission_plugin {
 
             $esigns = $this->get_signature($submission);
 
-            foreach ($files as $file) {
-                if (!$esign = $DB->get_record('assignsubmission_esign', array(
-                    'checksum' => $file->get_contenthash(),
-                    'submission' => $submission->id
-                    ))) {
-                    $filestosign[] = $file;
-                } else {
-                    $esignstosave[] = $esign;
+            if ($esigns) {
+                foreach ($files as $file) {
+                    if (!$esign = $DB->get_record('assignsubmission_esign', array(
+                        'checksum' => $file->get_contenthash(),
+                        'submission' => $submission->id
+                        ))) {
+                        $filestosign[] = $file;
+                    } else {
+                        $esignstosave[] = $esign;
+                    }
                 }
-            }
 
-            $esignstodelete = array_udiff($esigns, $esignstosave,
-                function ($obj_a, $obj_b) {
-                    return $obj_a->id - $obj_b->id;
-                }
-            );
+                $esignstodelete = array_udiff($esigns, $esignstosave,
+                    function ($obj_a, $obj_b) {
+                        return $obj_a->id - $obj_b->id;
+                    }
+                );
 
-            if ($esignstodelete) {
-                foreach ($esignstodelete as $esign) {
-                    $DB->delete_records('assignsubmission_esign', array(
-                    'checksum' => $esign->checksum,
-                    'submission' => $submission->id
-                    ));
+                if ($esignstodelete) {
+                    foreach ($esignstodelete as $esign) {
+                        $DB->delete_records('assignsubmission_esign', array(
+                        'checksum' => $esign->checksum,
+                        'submission' => $submission->id
+                        ));
+                    }
                 }
+            } else {
+                $filestosign = $files;
             }
 
             if ($filestosign) {
@@ -183,8 +188,11 @@ class assign_submission_esign extends assign_submission_plugin {
      * @return bool
      */
     public function is_empty(stdClass $submission) {
-        $_SESSION['esign_token'] = NULL;
-        return $this->get_signature($submission) == false;
+        if ($this->get_signature($submission)) {
+            return (array_pop($this->get_signature($submission))->signedtoken == 'empty_token');
+        } else {
+            return true;
+        }
     }
 
     /**

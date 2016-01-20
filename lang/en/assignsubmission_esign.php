@@ -28,3 +28,5 @@ $string['enabled'] = 'Submission e-signature';
 $string['enabled_help'] = 'If enabled, students can sign their own submission with e-signature.';
 $string['eventsubmissionsigned'] = 'Submission e-signed';
 $string['pluginname'] = 'Submission e-signature';
+$string['savechanges'] = 'By saving changes you will be redirected to your PEPS provider in order to complete e-signing of your submission.';
+$string['signedby'] = 'Signed by {$a->signee} on {$a->timesigned}';

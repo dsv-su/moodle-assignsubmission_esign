@@ -9,12 +9,15 @@ require_once('../../../../stork2/storkSignResponse.php');
 // Read stork saml response
 $stork_attributes = parseStorkResponse();
 
+$submission = unserialize($_SESSION['submission']);
+$event_params = unserialize($_SESSION['event_params']);
+$cmid = $_SESSION['cmid'];
+unset($_SESSION['submission']);
+unset($_SESSION['event_params']);
+unset($_SESSION['cmid']);
+
 if ($stork_attributes) {
 	$stork_token = $stork_attributes['eIdentifier'];
-
-	$submission = unserialize($_SESSION['submission']);
-	$event_params = unserialize($_SESSION['event_params']);
-	$cmid = $_SESSION['cmid'];
 
 	$esign = $DB->get_records('assignsubmission_esign', array('submission' => $submission->id));
 

@@ -174,7 +174,7 @@ class assign_submission_esign extends assign_submission_plugin {
         } else if (!$this->file_submission_enabled()) {
             return true;
         } else {
-            $this->set_error('You have to upload files for your submission.');
+            $this->set_error(get_string('filemissing', 'assignsubmission_esign'));
             return false;
         }
 

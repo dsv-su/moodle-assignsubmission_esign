@@ -92,6 +92,7 @@ class assign_submission_esign extends assign_submission_plugin {
         global $DB;
 
         if (isset($_SESSION['submission_signed']) && $_SESSION['submission_signed']) {
+            unset($_SESSION['submission_signed']);
             return true;
         }
 

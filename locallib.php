@@ -91,6 +91,10 @@ class assign_submission_esign extends assign_submission_plugin {
     public function save(stdClass $submission, stdClass $data) {
         global $DB;
 
+        if (isset($_SESSION['submission_signed']) && $_SESSION['submission_signed']) {
+            return true;
+        }
+
         $files = $this->get_submitted_files($submission);
 
         $user = $DB->get_record('user', array('id' => $submission->userid));
@@ -157,6 +161,7 @@ class assign_submission_esign extends assign_submission_plugin {
             }
 
             $_SESSION['submission'] = serialize($submission);
+            $_SESSION['data'] = serialize($data);
 
             $params = array(
                 'context' => $this->assignment->get_context(),
@@ -188,8 +193,9 @@ class assign_submission_esign extends assign_submission_plugin {
      * @return bool
      */
     public function is_empty(stdClass $submission) {
-        if ($this->get_signature($submission)) {
-            return (array_pop($this->get_signature($submission))->signedtoken == 'empty_token');
+        $esign = $this->get_signature($submission);
+        if ($esign) {
+            return (array_pop($esign)->signedtoken == 'empty_token');
         } else {
             return true;
         }

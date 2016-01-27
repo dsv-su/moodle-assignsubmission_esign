@@ -5,6 +5,7 @@ require('../../../../config.php');
 global $DB, $CFG;
 
 require_once('../../../../stork2/storkSignResponse.php');
+require_once($CFG->dirroot.'/mod/assign/locallib.php');
 
 // Read stork saml response
 $stork_attributes = parseStorkResponse();
@@ -12,9 +13,11 @@ $stork_attributes = parseStorkResponse();
 $submission = unserialize($_SESSION['submission']);
 $event_params = unserialize($_SESSION['event_params']);
 $cmid = $_SESSION['cmid'];
+$data = unserialize($_SESSION['data']);
 unset($_SESSION['submission']);
 unset($_SESSION['event_params']);
 unset($_SESSION['cmid']);
+unset($_SESSION['data']);
 
 if ($stork_attributes) {
 	$stork_token = $stork_attributes['eIdentifier'];
@@ -36,6 +39,11 @@ if ($stork_attributes) {
 	$PAGE->set_cm($cm);
 	$PAGE->set_title(get_string('pluginname', 'assignsubmission_esign'));
 	$PAGE->set_pagelayout('standard');
+
+	$_SESSION['submission_signed'] = true;
+	$assignment = new assign($context, $cm, $course);
+	$notices = null;
+	$assignment->save_submission($submission, $notices);
 
 	$event = \assignsubmission_esign\event\submission_signed::create($event_params);
 	$event->trigger();

@@ -52,7 +52,7 @@ class assign_submission_esign extends assign_submission_plugin {
      * @return bool
      */
     public function get_form_elements($submission, MoodleQuickForm $mform, stdClass $data) {
-        if ($this->file_submission_enabled()) {
+        if (!$this->assignment->get_instance()->submissiondrafts) {
             $choices = get_string_manager()->get_list_of_countries();
             $choices = array('' => get_string('selectacountry') . '...') + $choices;
             $mform->addElement('select', 'country', 'Country for E-signature', $choices);
@@ -82,30 +82,22 @@ class assign_submission_esign extends assign_submission_plugin {
     }
 
     /**
-     * Save the files and sign them with the token gotten from PEPS.
+     * Gets the files from the file submission plugin.
      *
      * @param stdClass $submission
      * @param stdClass $data
      * @return bool
      */
-    public function save(stdClass $submission, stdClass $data) {
+    function get_files_to_sign($submission) {
         global $DB;
 
-        if (isset($_SESSION['submission_signed']) && $_SESSION['submission_signed']) {
-            unset($_SESSION['submission_signed']);
-            return true;
-        }
-
         $files = $this->get_submitted_files($submission);
-
-        $user = $DB->get_record('user', array('id' => $submission->userid));
-
         if (empty($files)) {
             $files = array();
             $file = new stdClass();
         }
 
-        if ($this->file_submission_enabled() && count($files)) {
+        if (count($files)) {
 
             // Check which files to sign, and which signatures to delete.
             $filestosign = array();
@@ -144,47 +136,88 @@ class assign_submission_esign extends assign_submission_plugin {
                 $filestosign = $files;
             }
 
-            if ($filestosign) {
-                foreach ($filestosign as $file) {
-                    // Creating a dummy value.
-                    $esign = new stdClass();
-                    $esign->checksum = $file->get_contenthash();
-                    $esign->signedtoken = 'empty_token';
-                    $esign->contextid = $this->assignment->get_context()->id;
-                    $esign->area = 'submission_files';
-                    $esign->submission = $submission->id;
-                    $esign->userid = $submission->userid;
-                    $esign->signee = fullname($user);
-                    $esign->timesigned = time();
+            return $filestosign;
+        }
+    }
 
-                    $DB->insert_record('assignsubmission_esign', $esign);
-                }
-            }
+    /**
+     * Save the files and sign them with the token gotten from PEPS.
+     *
+     * @param stdClass $submission
+     * @param stdClass $data
+     * @return bool
+     */
+    public function save(stdClass $submission, stdClass $data) {
+        global $DB;
 
-            $_SESSION['submission'] = serialize($submission);
-            $_SESSION['data'] = serialize($data);
-
-            $params = array(
-                'context' => $this->assignment->get_context(),
-                'courseid' => $this->assignment->get_course()->id
-            );
-            $params['other']['submissionid'] = $submission->id;
-            $params['other']['submissionattempt'] = $submission->attemptnumber;
-            $params['other']['submissionstatus'] = $submission->status;
-
-            $_SESSION['event_params'] = serialize($params);
-            $_SESSION['cmid'] = $this->assignment->get_course_module()->id;
-
-            redirect('submission/esign/peps-sign-request.php?country='.$data->country);
-
-        } else if (!$this->file_submission_enabled()) {
+        if (isset($_SESSION['submission_signed']) && $_SESSION['submission_signed']) {
+            unset($_SESSION['submission_signed']);
             return true;
-        } else {
-            $this->set_error(get_string('filemissing', 'assignsubmission_esign'));
-            return false;
         }
 
-        return true;
+        if ($this->assignment->get_instance()->submissiondrafts) {
+            //If this assignment allows drafts, delay the e-signing until the user sends it.
+            return true;
+        }
+
+        $this->process_initial_esigning($submission, $data);
+
+        redirect('submission/esign/peps-sign-request.php?country='.$data->country);
+    }
+
+    function process_initial_esigning($submission, $data = null) {
+        global $DB;
+
+        $user = $DB->get_record('user', array('id' => $submission->userid));
+
+        if ($this->file_submission_enabled()) {
+            $filestosign = $this->get_files_to_sign($submission);
+            if (!$filestosign) {
+                $this->set_error(get_string('filemissing', 'assignsubmission_esign'));
+                return false; 
+            }
+        }
+
+        $esign = $this->get_signature($submission);
+        if (!$esign) {
+            $esign = new stdClass();
+            $esign->signedtoken = 'empty_token';
+            $esign->contextid = $this->assignment->get_context()->id;
+            $esign->submission = $submission->id;
+            $esign->userid = $submission->userid;
+            $esign->signee = fullname($user);
+            $esign->timesigned = time();
+
+            if ($filestosign) {
+                foreach ($filestosign as $file) {
+                    $esign->checksum = $file->get_contenthash();
+                    $esign->area = 'submission_files';
+                    $DB->insert_record('assignsubmission_esign', $esign);
+                }
+            } else {
+                $esign->checksum = 'empty_checksum';
+                $esign->area = 'submissions';
+                $DB->insert_record('assignsubmission_esign', $esign);
+            }
+        }
+
+        $_SESSION['submission'] = serialize($submission);
+        if ($data) {
+            $_SESSION['data'] = serialize($data);
+        }
+
+        $params = array(
+            'context' => $this->assignment->get_context(),
+            'courseid' => $this->assignment->get_course()->id
+        );
+        $params['other']['submissionid'] = $submission->id;
+        $params['other']['submissionattempt'] = $submission->attemptnumber;
+        $params['other']['submissionstatus'] = $submission->status;
+
+        $_SESSION['event_params'] = serialize($params);
+        $_SESSION['cmid'] = $this->assignment->get_course_module()->id;
+
+        return;
     }
 
     /**
@@ -270,5 +303,27 @@ class assign_submission_esign extends assign_submission_plugin {
             'contextid' => $this->assignment->get_context()->id
         ));
         return true;
+    }
+
+    /**
+     * Check if the submission plugin has all the required data to allow the work
+     * to be submitted for grading
+     * @param stdClass $submission the assign_submission record being submitted.
+     * @return bool|string 'true' if OK to proceed with submission, otherwise a
+     *                        a message to display to the user
+     */
+    public function precheck_submission($submission) {
+        global $DB, $CFG;
+
+        if (!$this->is_empty($submission)) {
+            return true;
+        }
+
+        $this->process_initial_esigning($submission);
+        
+        $_SESSION['submitted'] = true;
+
+        redirect(new moodle_url('submission/esign/esign.php',
+                                    array('id'=>$this->assignment->get_course_module()->id)));
     }
 }

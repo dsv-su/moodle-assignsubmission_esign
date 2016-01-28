@@ -11,13 +11,15 @@ require_once($CFG->dirroot.'/mod/assign/locallib.php');
 $stork_attributes = parseStorkResponse();
 
 $submission = unserialize($_SESSION['submission']);
-$event_params = unserialize($_SESSION['event_params']);
+$submitted = (isset($_SESSION['submitted']) ? $_SESSION['submitted'] : null);
+$event_params = (isset($_SESSION['event_params']) ? unserialize($_SESSION['event_params']) : null);
 $cmid = $_SESSION['cmid'];
-$data = unserialize($_SESSION['data']);
+$data = (isset($_SESSION['data']) ? unserialize($_SESSION['data']) : null);
 unset($_SESSION['submission']);
 unset($_SESSION['event_params']);
 unset($_SESSION['cmid']);
 unset($_SESSION['data']);
+unset($_SESSION['submitted']);
 
 if ($stork_attributes) {
 	$stork_token = $stork_attributes['eIdentifier'];
@@ -35,6 +37,7 @@ if ($stork_attributes) {
 	$course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
 
 	$PAGE->set_context($context);
+	$PAGE->set_url('/mod/assign/view.php', array('id' => $cmid));
 	$PAGE->set_course($course);
 	$PAGE->set_cm($cm);
 	$PAGE->set_title(get_string('pluginname', 'assignsubmission_esign'));
@@ -43,10 +46,22 @@ if ($stork_attributes) {
 	$_SESSION['submission_signed'] = true;
 	$assignment = new assign($context, $cm, $course);
 	$notices = null;
-	$assignment->save_submission($submission, $notices);
 
 	$event = \assignsubmission_esign\event\submission_signed::create($event_params);
 	$event->trigger();
 
-	redirect('../../view.php?id='.$cmid);
+    $nextpageparams = array();
+    $nextpageparams['id'] = $assignment->get_course_module()->id;
+    $nextpageparams['sesskey'] = sesskey();
+	if ($submitted) {
+		$nextpageparams['action'] = 'confirmsubmit';
+		$nextpageurl = new moodle_url('/mod/assign/view.php', $nextpageparams);
+		redirect($nextpageurl);
+	} else {
+		$assignment->save_submission($submission, $notices);
+		$nextpageparams['action'] = 'savesubmission';
+		$nextpageurl = new moodle_url('/mod/assign/view.php', $nextpageparams);
+		redirect('../../view.php?id='.$cmid);
+	}
+
 }

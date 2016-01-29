@@ -150,8 +150,10 @@ class assign_submission_esign extends assign_submission_plugin {
     public function save(stdClass $submission, stdClass $data) {
         global $DB;
 
-        if (isset($_SESSION['submission_signed']) && $_SESSION['submission_signed']) {
-            unset($_SESSION['submission_signed']);
+        $cmid = $this->assignment->get_course_module()->id;
+        if (isset($_SESSION['assing'.$cmid]['submission_signed'])
+            && $_SESSION['assing'.$cmid]['submission_signed']) {
+            unset($_SESSION['assing'.$cmid]['submission_signed']);
             return true;
         }
 
@@ -165,6 +167,13 @@ class assign_submission_esign extends assign_submission_plugin {
         redirect('submission/esign/peps-sign-request.php?country='.$data->country);
     }
 
+    /**
+     * Process the initial e-signing of the submission and populates SESSION.
+     *
+     * @param stdClass $submission
+     * @param stdClass $data
+     * @return bool
+     */
     function process_initial_esigning($submission, $data = null) {
         global $DB;
 
@@ -188,7 +197,7 @@ class assign_submission_esign extends assign_submission_plugin {
             $esign->signee = fullname($user);
             $esign->timesigned = time();
 
-            if ($filestosign) {
+            if ($this->file_submission_enabled() && $filestosign) {
                 foreach ($filestosign as $file) {
                     $esign->checksum = $file->get_contenthash();
                     $esign->area = 'submission_files';
@@ -201,9 +210,12 @@ class assign_submission_esign extends assign_submission_plugin {
             }
         }
 
-        $_SESSION['submission'] = serialize($submission);
+        $cmid = $this->assignment->get_course_module()->id;
+
+        $_SESSION['assing'.$cmid] = array();
+        $_SESSION['assing'.$cmid]['submission'] = serialize($submission);
         if ($data) {
-            $_SESSION['data'] = serialize($data);
+            $_SESSION['assing'.$cmid]['data'] = serialize($data);
         }
 
         $params = array(
@@ -214,7 +226,7 @@ class assign_submission_esign extends assign_submission_plugin {
         $params['other']['submissionattempt'] = $submission->attemptnumber;
         $params['other']['submissionstatus'] = $submission->status;
 
-        $_SESSION['event_params'] = serialize($params);
+        $_SESSION['assing'.$cmid]['event_params'] = serialize($params);
         $_SESSION['cmid'] = $this->assignment->get_course_module()->id;
 
         return;
@@ -320,8 +332,8 @@ class assign_submission_esign extends assign_submission_plugin {
         }
 
         $this->process_initial_esigning($submission);
-        
-        $_SESSION['submitted'] = true;
+
+        $_SESSION['assing'.$this->assignment->get_course_module()->id]['submitted'] = true;
 
         redirect(new moodle_url('submission/esign/esign.php',
                                     array('id'=>$this->assignment->get_course_module()->id)));

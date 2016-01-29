@@ -40,8 +40,6 @@ $postDetails = array(
     "spcountry" => "SE",
     "country" => $_GET["country"],
     "qaaLevel" => "3",
-    //"assertionUrl" => "http://dev1.egovlab.eu:4005/mod/assign/submission/esign/peps-sign-response.php",
-    //"assertionUrl" => "http://localhost/moodletest/mod/assign/submission/esign/peps-sign-response.php",
     "assertionUrl" => str_replace(strrchr($url, '/'), '', $url)."/peps-sign-response.php",
     "eIdentifierType" => "true",
 );

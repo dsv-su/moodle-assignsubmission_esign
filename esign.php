@@ -35,7 +35,7 @@ require_login($course);
 require_capability('mod/assign:submit', $context);
 
 $PAGE->set_url('/mod/assign/view.php', array('id' => $id));
-//$PAGE->set_title(get_string('edittemplate', 'assignsubmission_mailsimulator'));
+$PAGE->set_title(get_string('pluginname', 'assignsubmission_esign'));
 $PAGE->set_pagelayout('standard');
 $PAGE->set_context($context);
 $PAGE->set_course($course);
@@ -52,12 +52,11 @@ $formparams = array('cm'=>$assignment->get_course_module()->id,
 $mform = new assignsubmission_esign_esign_form(null, $formparams);
 
 if ($mform->is_cancelled()) {
-    unset($_SESSION['submission_signed']);
-    redirect(new moodle_url('view.php',
-                            array('id'=>$assignment->get_course_module()->id)));
+    unset($_SESSION['assing'.$id]['submission_signed']);
+    redirect(new moodle_url('view.php', array('id'=>$id)));
     return;
 } else if ($data = $mform->get_data()) {
-    $_SESSION['submission_signed'] = true;
+    $_SESSION['assing'.$id]['submission_signed'] = true;
     redirect('peps-sign-request.php?country='.$data->country);
 
     return;

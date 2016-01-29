@@ -52,11 +52,11 @@ $formparams = array('cm'=>$assignment->get_course_module()->id,
 $mform = new assignsubmission_esign_esign_form(null, $formparams);
 
 if ($mform->is_cancelled()) {
-    unset($_SESSION['assing'.$id]['submission_signed']);
+    unset($_SESSION['assign'.$id]['submission_signed']);
     redirect(new moodle_url('view.php', array('id'=>$id)));
     return;
 } else if ($data = $mform->get_data()) {
-    $_SESSION['assing'.$id]['submission_signed'] = true;
+    $_SESSION['assign'.$id]['submission_signed'] = true;
     redirect('peps-sign-request.php?country='.$data->country);
 
     return;

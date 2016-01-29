@@ -151,9 +151,9 @@ class assign_submission_esign extends assign_submission_plugin {
         global $DB;
 
         $cmid = $this->assignment->get_course_module()->id;
-        if (isset($_SESSION['assing'.$cmid]['submission_signed'])
-            && $_SESSION['assing'.$cmid]['submission_signed']) {
-            unset($_SESSION['assing'.$cmid]['submission_signed']);
+        if (isset($_SESSION['assign'.$cmid]['submission_signed'])
+            && $_SESSION['assign'.$cmid]['submission_signed']) {
+            unset($_SESSION['assign'.$cmid]['submission_signed']);
             return true;
         }
 
@@ -162,7 +162,16 @@ class assign_submission_esign extends assign_submission_plugin {
             return true;
         }
 
-        $this->process_initial_esigning($submission, $data);
+        $filestosign = null;
+        if ($this->file_submission_enabled()) {
+            if (!$this->get_submitted_files($submission)) {
+                $this->set_error(get_string('filemissing', 'assignsubmission_esign'));
+                return false;
+            }
+            $filestosign = $this->get_files_to_sign($submission);
+        }
+
+        $this->process_initial_esigning($submission, $filestosign, $data);
 
         redirect('submission/esign/peps-sign-request.php?country='.$data->country);
     }
@@ -174,18 +183,10 @@ class assign_submission_esign extends assign_submission_plugin {
      * @param stdClass $data
      * @return bool
      */
-    function process_initial_esigning($submission, $data = null) {
+    function process_initial_esigning($submission, $filestosign = null, $data = null) {
         global $DB;
 
         $user = $DB->get_record('user', array('id' => $submission->userid));
-
-        if ($this->file_submission_enabled()) {
-            $filestosign = $this->get_files_to_sign($submission);
-            if (!$filestosign) {
-                $this->set_error(get_string('filemissing', 'assignsubmission_esign'));
-                return false; 
-            }
-        }
 
         $esign = $this->get_signature($submission);
         if (!$esign) {
@@ -212,10 +213,10 @@ class assign_submission_esign extends assign_submission_plugin {
 
         $cmid = $this->assignment->get_course_module()->id;
 
-        $_SESSION['assing'.$cmid] = array();
-        $_SESSION['assing'.$cmid]['submission'] = serialize($submission);
+        $_SESSION['assign'.$cmid] = array();
+        $_SESSION['assign'.$cmid]['submission'] = serialize($submission);
         if ($data) {
-            $_SESSION['assing'.$cmid]['data'] = serialize($data);
+            $_SESSION['assign'.$cmid]['data'] = serialize($data);
         }
 
         $params = array(
@@ -226,10 +227,10 @@ class assign_submission_esign extends assign_submission_plugin {
         $params['other']['submissionattempt'] = $submission->attemptnumber;
         $params['other']['submissionstatus'] = $submission->status;
 
-        $_SESSION['assing'.$cmid]['event_params'] = serialize($params);
+        $_SESSION['assign'.$cmid]['event_params'] = serialize($params);
         $_SESSION['cmid'] = $this->assignment->get_course_module()->id;
 
-        return;
+        return true;
     }
 
     /**
@@ -241,7 +242,11 @@ class assign_submission_esign extends assign_submission_plugin {
     public function is_empty(stdClass $submission) {
         $esign = $this->get_signature($submission);
         if ($esign) {
-            return (array_pop($esign)->signedtoken == 'empty_token');
+            // Check if the submission was modified after is has been graded/reverted.
+            if ($submission->timemodified > array_values($esign)[0]->timesigned) {
+                return true;
+            }
+            return (array_values($esign)[0]->signedtoken == 'empty_token');
         } else {
             return true;
         }
@@ -331,9 +336,19 @@ class assign_submission_esign extends assign_submission_plugin {
             return true;
         }
 
-        $this->process_initial_esigning($submission);
+        $filestosign = null;
+        if ($this->file_submission_enabled()) {
+            if (!$this->get_submitted_files($submission)) {
+                return get_string('filemissing', 'assignsubmission_esign');
+            }
+            $filestosign = $this->get_files_to_sign($submission);
+        }
 
-        $_SESSION['assing'.$this->assignment->get_course_module()->id]['submitted'] = true;
+        if (!$this->process_initial_esigning($submission, $filestosign)) {
+            return 'Something went wrong. Please try later.';
+        }
+
+        $_SESSION['assign'.$this->assignment->get_course_module()->id]['submitted'] = true;
 
         redirect(new moodle_url('submission/esign/esign.php',
                                     array('id'=>$this->assignment->get_course_module()->id)));

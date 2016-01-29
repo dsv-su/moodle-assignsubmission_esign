@@ -11,10 +11,10 @@ require_once($CFG->dirroot.'/mod/assign/locallib.php');
 $stork_attributes = parseStorkResponse();
 
 $cmid = $_SESSION['cmid'];
-$submission = unserialize($_SESSION['assing'.$cmid]['submission']);
-$submitted = (isset($_SESSION['assing'.$cmid]['submitted']) ? $_SESSION['assing'.$cmid]['submitted'] : null);
-$event_params = (isset($_SESSION['assing'.$cmid]['event_params']) ? unserialize($_SESSION['assing'.$cmid]['event_params']) : null);
-$data = (isset($_SESSION['assing'.$cmid]['data']) ? unserialize($_SESSION['assing'.$cmid]['data']) : null);
+$submission = (isset($_SESSION['assign'.$cmid]['submission']) ? unserialize($_SESSION['assign'.$cmid]['submission']) : null);
+$submitted = (isset($_SESSION['assign'.$cmid]['submitted']) ? $_SESSION['assign'.$cmid]['submitted'] : null);
+$event_params = (isset($_SESSION['assign'.$cmid]['event_params']) ? unserialize($_SESSION['assign'.$cmid]['event_params']) : null);
+$data = (isset($_SESSION['assign'.$cmid]['data']) ? unserialize($_SESSION['assign'.$cmid]['data']) : null);
 unset($_SESSION['assign'.$cmid]);
 unset($_SESSION['cmid']);
 
@@ -40,7 +40,7 @@ if ($stork_attributes) {
 	$PAGE->set_title(get_string('pluginname', 'assignsubmission_esign'));
 	$PAGE->set_pagelayout('standard');
 
-	$_SESSION['assing'.$cmid]['submission_signed'] = true;
+	$_SESSION['assign'.$cmid]['submission_signed'] = true;
 	$assignment = new assign($context, $cm, $course);
 	$notices = null;
 

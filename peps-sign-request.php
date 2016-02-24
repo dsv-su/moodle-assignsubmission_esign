@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains simulation of token generation for e-sign plugin.
+ * This file contains peps request function for e-sign plugin.
  *
  * @package    assignsubmission_esign
  * @copyright  2015 Pavel Sokolov <pavel.m.sokolov@gmail.com>
@@ -28,7 +28,7 @@ require('../../../../config.php');
 require_once('../../../../stork2/storkRequest.php');
 
 $s = '';
-if(isset($_SERVER['HTTPS'])) {
+if (isset($_SERVER['HTTPS'])) {
     if ($_SERVER['HTTPS'] == "on") {
         $s = 's';
     }
@@ -36,7 +36,7 @@ if(isset($_SERVER['HTTPS'])) {
 
 $url = "http$s://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 
-$postDetails = array(
+$postdetails = array(
     "spcountry" => "SE",
     "country" => $_GET["country"],
     "qaaLevel" => "3",
@@ -44,4 +44,4 @@ $postDetails = array(
     "eIdentifierType" => "true",
 );
 
-sendStorkRequest($postDetails);
+sendStorkRequest($postdetails);

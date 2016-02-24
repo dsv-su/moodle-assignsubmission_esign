@@ -46,14 +46,14 @@ $assignment = new assign($context, $cm, $course);
 
 require_once($CFG->dirroot.'/mod/assign/submission/esign/esignform.php');
 
-$formparams = array('cm'=>$assignment->get_course_module()->id,
-        'context'=>$assignment->get_context());
+$formparams = array('cm' => $assignment->get_course_module()->id,
+        'context' => $assignment->get_context());
 
 $mform = new assignsubmission_esign_esign_form(null, $formparams);
 
 if ($mform->is_cancelled()) {
     unset($_SESSION['assign'.$id]['submission_signed']);
-    redirect(new moodle_url('view.php', array('id'=>$id)));
+    redirect(new moodle_url('view.php', array('id' => $id)));
     return;
 } else if ($data = $mform->get_data()) {
     $_SESSION['assign'.$id]['submission_signed'] = true;

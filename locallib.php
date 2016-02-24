@@ -88,7 +88,7 @@ class assign_submission_esign extends assign_submission_plugin {
      * @param stdClass $data
      * @return bool
      */
-    function get_files_to_sign($submission) {
+    public function get_files_to_sign($submission) {
         global $DB;
 
         $files = $this->get_submitted_files($submission);
@@ -119,8 +119,8 @@ class assign_submission_esign extends assign_submission_plugin {
                 }
 
                 $esignstodelete = array_udiff($esigns, $esignstosave,
-                    function ($obj_a, $obj_b) {
-                        return $obj_a->id - $obj_b->id;
+                    function ($a, $b) {
+                        return $a->id - $b->id;
                     }
                 );
 
@@ -158,7 +158,7 @@ class assign_submission_esign extends assign_submission_plugin {
         }
 
         if ($this->assignment->get_instance()->submissiondrafts) {
-            //If this assignment allows drafts, delay the e-signing until the user sends it.
+            // If this assignment allows drafts, delay the e-signing until the user sends it.
             return true;
         }
 
@@ -183,7 +183,7 @@ class assign_submission_esign extends assign_submission_plugin {
      * @param stdClass $data
      * @return bool
      */
-    function process_initial_esigning($submission, $filestosign = null, $data = null) {
+    public function process_initial_esigning($submission, $filestosign = null, $data = null) {
         global $DB;
 
         $user = $DB->get_record('user', array('id' => $submission->userid));
@@ -351,6 +351,6 @@ class assign_submission_esign extends assign_submission_plugin {
         $_SESSION['assign'.$this->assignment->get_course_module()->id]['submitted'] = true;
 
         redirect(new moodle_url('submission/esign/esign.php',
-                                    array('id'=>$this->assignment->get_course_module()->id)));
+                                    array('id' => $this->assignment->get_course_module()->id)));
     }
 }
